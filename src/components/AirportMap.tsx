@@ -148,7 +148,7 @@ export function AirportMap({ originAirport, destinationAirport, className = "" }
 
   return (
     <div className={`relative z-0 overflow-hidden rounded-lg border border-slate-600/60 ${className}`}>
-      <div ref={containerRef} style={{ height: 420, width: "100%" }} />
+      <div ref={containerRef} className="h-[280px] sm:h-[420px] w-full" />
     </div>
   )
 }

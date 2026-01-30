@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { Plane, Hotel, Info, ChevronUp, ChevronDown, ExternalLink, Ticket } from "lucide-react"
+import { Plane, Hotel, Info, ChevronUp, ChevronDown, ExternalLink, Ticket, Sparkles } from "lucide-react"
 import {
   PARTNER_DATA,
   PARTNER_BOOKING_URLS,
@@ -274,6 +274,10 @@ export default function App() {
   const [sortBy, setSortBy] = useState<SortKey>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [hoveredStrategy, setHoveredStrategy] = useState<{ partnerId: string; regionKey: keyof StrategyByRegion } | null>(null)
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [expandedTicketSections, setExpandedTicketSections] = useState<Set<string>>(new Set(["basic"]))
+  const [expandedToolDescriptions, setExpandedToolDescriptions] = useState<Set<string>>(new Set())
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState("")
   const [awardFrom, setAwardFrom] = useState("GMP")
   const [awardTo, setAwardTo] = useState("HND")
   const [dateFrom, setDateFrom] = useState(DEFAULT_DEPART_DATE)
@@ -350,18 +354,18 @@ export default function App() {
     <div className="min-h-screen" style={{ backgroundColor: BG_NAVY }}>
       {/* 헤더 + MR 입력 (고급 스타일) */}
       <header className="sticky top-0 z-20 border-b border-slate-700/40" style={{ backgroundColor: BG_NAVY }}>
-        <div className="mx-auto max-w-5xl px-4 py-5">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="mx-auto max-w-5xl px-4 py-4 sm:py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
               <h1 className="text-xs font-medium uppercase tracking-widest text-slate-500">
                 현대카드 아멕스 플래티넘
               </h1>
-              <p className="mt-0.5 text-2xl font-semibold tracking-tight" style={{ color: TEXT_PRIMARY }}>
+              <p className="mt-0.5 text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: TEXT_PRIMARY }}>
                 MR 파트너사별 전환 효율
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-slate-500">보유 MR</label>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <label className="text-xs sm:text-sm text-slate-500 whitespace-nowrap">보유 MR</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -375,7 +379,7 @@ export default function App() {
                     if (!isNaN(n) && n >= 0) setMr(n)
                   }
                 }}
-                className="w-44 rounded-xl border border-slate-600/80 bg-slate-800/60 px-4 py-3 text-right text-lg font-semibold tabular-nums shadow-inner transition-all placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                className="w-full sm:w-44 rounded-xl border border-slate-600/80 bg-slate-800/60 px-3 sm:px-4 py-2 sm:py-3 text-right text-base sm:text-lg font-semibold tabular-nums shadow-inner transition-all placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                 style={{ color: TEXT_PRIMARY }}
               />
             </div>
@@ -454,11 +458,11 @@ export default function App() {
                     key={cat}
                     type="button"
                     onClick={() => setCategoryFilter(cat)}
-                    className={`flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 ${
-                      categoryFilter === cat
-                        ? "bg-slate-600 text-white"
-                        : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300"
-                    }`}
+                  className={`flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 ${
+                    categoryFilter === cat
+                      ? "bg-sky-500/30 text-sky-200 border border-sky-500/50 shadow-sm shadow-sky-500/20"
+                      : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300 border border-transparent"
+                  }`}
                   >
                     {cat === "항공" && <Plane className="h-3.5 w-3.5" />}
                     {cat === "호텔" && <Hotel className="h-3.5 w-3.5" />}
@@ -499,12 +503,20 @@ export default function App() {
         <div className="space-y-3">
           {rows.map(({ partner, miles, cashValue, badge }) => {
             const isAboveGift = cashValue > giftValue
+            const isExpanded = expandedCards.has(partner.id)
+            const toggleExpand = () => {
+              const newSet = new Set(expandedCards)
+              if (isExpanded) {
+                newSet.delete(partner.id)
+              } else {
+                newSet.add(partner.id)
+              }
+              setExpandedCards(newSet)
+            }
             return (
-              <button
+              <article
                 key={partner.id}
-                type="button"
-                onClick={() => goToTicketTab(partner)}
-                className="w-full rounded-xl border border-slate-700/40 bg-slate-900/30 p-4 text-left transition-colors hover:bg-sky-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                className="w-full rounded-xl border border-slate-700/40 bg-slate-900/30 p-4 transition-colors hover:bg-slate-800/50"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-700/50 text-slate-400">
@@ -515,12 +527,54 @@ export default function App() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
+                    {/* 상단: 우선순위 높은 정보 */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-medium" style={{ color: TEXT_PRIMARY }}>
                           {partner.name.includes(" (") ? partner.name.split(" (")[0] : partner.name}
                         </h3>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <div className="mt-1.5 grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-slate-500 text-[10px]">예상 가치</span>
+                            <p className={`mt-0.5 font-bold text-sm ${isAboveGift ? "text-emerald-400" : "text-slate-200"}`}>
+                              {formatKRW(cashValue)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 text-[10px]">전환 {partner.category === "호텔" ? "pts" : "마일"}</span>
+                            <p className="mt-0.5 font-medium text-sm text-slate-200">
+                              {formatNumber(miles)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      {badge && (
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {badge.type === "best" && (
+                            <Sparkles className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                          )}
+                          <span
+                            title={badge.tooltip}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              badge.type === "best"
+                                ? "bg-emerald-500/30 text-emerald-300 border border-emerald-500/50"
+                                : badge.type === "versatile"
+                                  ? "bg-sky-500/25 text-sky-300"
+                                  : badge.type === "qatar_tip"
+                                    ? "bg-amber-500/30 text-amber-300"
+                                    : ""
+                            }`}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 접기 가능한 상세 정보 */}
+                    {isExpanded && (
+                      <div className="mt-3 space-y-2 border-t border-slate-700/40 pt-3">
+                        <div className="flex items-center gap-2">
                           <span
                             className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                               partner.category === "항공"
@@ -530,57 +584,55 @@ export default function App() {
                           >
                             {partner.category}
                           </span>
-                          <span className="text-[10px] text-slate-400">{formatRatio(partner.ratio)}</span>
+                          <span className="text-[10px] text-slate-400">전환비율: {formatRatio(partner.ratio)}</span>
                         </div>
+                        {"strategyByRegion" in partner && partner.strategyByRegion ? (
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-medium text-slate-400">지역별 전략</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {REGIONS.filter((r) => partner.strategyByRegion?.[r.key]).map((r) => (
+                                <div key={r.key} className="flex flex-col">
+                                  <span className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium ${r.badgeClass}`}>
+                                    {r.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] leading-relaxed text-slate-500">{partner.strategy}</p>
+                        )}
                       </div>
-                      {badge && (
-                        <span
-                          title={badge.tooltip}
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            badge.type === "best"
-                              ? "bg-emerald-500/25 text-emerald-400"
-                              : badge.type === "versatile"
-                                ? "bg-sky-500/20 text-sky-400"
-                                : badge.type === "qatar_tip"
-                                  ? "bg-amber-500/25 text-amber-400"
-                                  : ""
-                          }`}
-                        >
-                          {badge.label}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-slate-500">전환</span>
-                        <p className="mt-0.5 font-medium text-slate-200">
-                          {partner.category === "호텔" ? `${formatNumber(miles)} pts` : `${formatNumber(miles)} 마일`}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">예상 가치</span>
-                        <p className={`mt-0.5 font-bold ${isAboveGift ? "text-emerald-400" : "text-slate-200"}`}>
-                          {formatKRW(cashValue)}
-                        </p>
-                      </div>
-                    </div>
-                    {"strategyByRegion" in partner && partner.strategyByRegion ? (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {REGIONS.filter((r) => partner.strategyByRegion?.[r.key]).map((r) => (
-                          <span
-                            key={r.key}
-                            className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium ${r.badgeClass}`}
-                          >
-                            {r.label}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{partner.strategy}</p>
                     )}
+
+                    {/* 하단: CTA 버튼 + 접기 토글 */}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => goToTicketTab(partner)}
+                        className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg bg-sky-500/20 px-4 py-2 text-xs font-medium text-sky-300 transition-colors hover:bg-sky-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                        aria-label={`${partner.name} 티켓 조회로 이동`}
+                      >
+                        <Ticket className="h-3.5 w-3.5" />
+                        티켓 조회
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleExpand}
+                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-slate-600/60 bg-slate-800/50 text-slate-400 transition-colors hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                        aria-expanded={isExpanded}
+                        aria-label={isExpanded ? "상세 정보 접기" : "상세 정보 펼치기"}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </button>
+              </article>
             )
           })}
         </div>
@@ -808,9 +860,38 @@ export default function App() {
 
           {/* 검색 조건: Google 지도 + 공항 자동완성 */}
           <div className="mb-6 rounded-xl border border-slate-600/60 bg-slate-800/50 p-5 shadow-inner">
-            <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-400">
-              검색 조건 · 아래 툴 링크에 반영
-            </p>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                검색 조건 · 아래 툴 링크에 반영
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const newSet = new Set(expandedTicketSections)
+                  if (newSet.has("basic")) {
+                    newSet.delete("basic")
+                  } else {
+                    newSet.add("basic")
+                  }
+                  setExpandedTicketSections(newSet)
+                }}
+                className="sm:hidden flex min-h-[32px] items-center gap-1 rounded-lg px-2 text-[10px] text-slate-500 hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                aria-expanded={expandedTicketSections.has("basic")}
+                aria-label={expandedTicketSections.has("basic") ? "검색 조건 접기" : "검색 조건 펼치기"}
+              >
+                {expandedTicketSections.has("basic") ? (
+                  <>
+                    접기 <ChevronUp className="h-3 w-3" />
+                  </>
+                ) : (
+                  <>
+                    펼치기 <ChevronDown className="h-3 w-3" />
+                  </>
+                )}
+              </button>
+            </div>
+            {expandedTicketSections.has("basic") && (
+              <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label className="mb-1 block text-[11px] font-medium text-slate-500">Origin</label>
@@ -853,66 +934,6 @@ export default function App() {
                 />
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-6">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium text-slate-500">Stops</span>
-                {([0, 1, 2] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStops(s)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      stops === s
-                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {s === 0 ? "직항" : `${s}경유`}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium text-slate-500">Route</span>
-                {(["oneway", "roundtrip"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRouteType(r)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      routeType === r
-                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {r === "oneway" ? "편도" : "왕복"}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium text-slate-500">Cabin</span>
-                {(
-                  [
-                    { v: "economy" as const, label: "Economy" },
-                    { v: "premium" as const, label: "Premium Economy" },
-                    { v: "business" as const, label: "Business" },
-                    { v: "first" as const, label: "First" },
-                  ] as const
-                ).map(({ v, label }) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setCabin(v)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      cabin === v
-                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
             {/* Google 지도: 출발/도착 선택 시 노선 표시 */}
             <div className="mt-4">
               <p className="mb-2 text-[11px] font-medium text-slate-500">지도</p>
@@ -920,6 +941,105 @@ export default function App() {
                 originAirport={findAirportByIata(awardFrom, airports) ?? null}
                 destinationAirport={findAirportByIata(awardTo, airports) ?? null}
               />
+            </div>
+            </>
+            )}
+            {/* 상세 옵션 접기 */}
+            <div className="mt-4 sm:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  const newSet = new Set(expandedTicketSections)
+                  if (newSet.has("advanced")) {
+                    newSet.delete("advanced")
+                  } else {
+                    newSet.add("advanced")
+                  }
+                  setExpandedTicketSections(newSet)
+                }}
+                className="flex w-full items-center justify-between rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2 text-xs text-slate-400 transition-colors hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                aria-expanded={expandedTicketSections.has("advanced")}
+                aria-label={expandedTicketSections.has("advanced") ? "상세 옵션 접기" : "상세 옵션 펼치기"}
+              >
+                <span>상세 옵션 (경유/캐빈)</span>
+                {expandedTicketSections.has("advanced") ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              {expandedTicketSections.has("advanced") && (
+                <div className="mt-3">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Stops</span>
+                        <div className="flex gap-1.5">
+                          {([0, 1, 2] as const).map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setStops(s)}
+                              className={`min-h-[44px] shrink-0 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors ${
+                                stops === s
+                                  ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
+                                  : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
+                              }`}
+                            >
+                              {s === 0 ? "직항" : `${s}경유`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Route</span>
+                        <div className="flex gap-1.5">
+                          {(["oneway", "roundtrip"] as const).map((r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => setRouteType(r)}
+                              className={`min-h-[44px] shrink-0 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors ${
+                                routeType === r
+                                  ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
+                                  : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
+                              }`}
+                            >
+                              {r === "oneway" ? "편도" : "왕복"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+                        <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Cabin</span>
+                        <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 sm:flex-initial sm:overflow-visible sm:pb-0">
+                          {(
+                            [
+                              { v: "economy" as const, label: "Economy" },
+                              { v: "premium" as const, label: "Premium Economy" },
+                              { v: "business" as const, label: "Business" },
+                              { v: "first" as const, label: "First" },
+                            ] as const
+                          ).map(({ v, label }) => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => setCabin(v)}
+                              className={`min-h-[44px] shrink-0 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+                                cabin === v
+                                  ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
+                                  : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -932,52 +1052,116 @@ export default function App() {
               위 검색 조건이 각 툴 링크에 반영됩니다.
             </p>
             <div className="space-y-2">
-              {AWARD_TOOLS.map((tool) => (
-                <div
-                  key={tool.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700/50 bg-slate-800/40 p-4"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-200">{tool.name}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-400">{tool.description}</p>
-                  </div>
-                  <a
-                    href={tool.buildUrl(searchParams)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-600/80 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-600"
+              {AWARD_TOOLS.map((tool) => {
+                const isExpanded = expandedToolDescriptions.has(tool.id)
+                const descriptionLines = tool.description.split(/\n|\. /)
+                const shouldTruncate = descriptionLines.length > 2 || tool.description.length > 100
+                return (
+                  <div
+                    key={tool.id}
+                    className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-700/50 bg-slate-800/40 p-4"
                   >
-                    바로 열기
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-200">{tool.name}</p>
+                      <div className="mt-0.5">
+                        {shouldTruncate && !isExpanded ? (
+                          <>
+                            <p className="text-[11px] leading-relaxed text-slate-400 line-clamp-2">
+                              {tool.description}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSet = new Set(expandedToolDescriptions)
+                                newSet.add(tool.id)
+                                setExpandedToolDescriptions(newSet)
+                              }}
+                              className="mt-1 text-[10px] text-sky-400 hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                            >
+                              더보기
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[11px] leading-relaxed text-slate-400">{tool.description}</p>
+                            {shouldTruncate && isExpanded && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSet = new Set(expandedToolDescriptions)
+                                  newSet.delete(tool.id)
+                                  setExpandedToolDescriptions(newSet)
+                                }}
+                                className="mt-1 text-[10px] text-sky-400 hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                              >
+                                접기
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <a
+                      href={tool.buildUrl(searchParams)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-600/80 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                    >
+                      바로 열기
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
           <div className="rounded-xl border border-slate-700/40 bg-slate-900/30">
-            <p className="border-b border-slate-700/40 px-4 py-3 text-xs font-medium text-slate-500">
-              파트너별 예약/조회 페이지
-            </p>
+            <div className="border-b border-slate-700/40 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-slate-500">파트너별 예약/조회 페이지</p>
+                <div className="sm:hidden flex-1 max-w-[200px]">
+                  <input
+                    type="text"
+                    value={partnerSearchQuery}
+                    onChange={(e) => setPartnerSearchQuery(e.target.value)}
+                    placeholder="검색..."
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/50 px-2 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                    aria-label="파트너 검색"
+                  />
+                </div>
+              </div>
+            </div>
             <ul className="divide-y divide-slate-700/30">
-              {PARTNER_DATA.map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                  <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
-                    {p.name}
-                  </span>
-                  {PARTNER_BOOKING_URLS[p.id] ? (
-                    <a
-                      href={PARTNER_BOOKING_URLS[p.id]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:underline"
-                    >
-                      열기
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : (
-                    <span className="text-xs text-slate-500">—</span>
-                  )}
+              {PARTNER_DATA.filter((p) => {
+                if (!partnerSearchQuery.trim()) return true
+                const query = partnerSearchQuery.toLowerCase()
+                return p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)
+              }).map((p) => (
+                <li key={p.id}>
+                  <a
+                    href={PARTNER_BOOKING_URLS[p.id] || "#"}
+                    target={PARTNER_BOOKING_URLS[p.id] ? "_blank" : undefined}
+                    rel={PARTNER_BOOKING_URLS[p.id] ? "noopener noreferrer" : undefined}
+                    onClick={(e) => {
+                      if (!PARTNER_BOOKING_URLS[p.id]) {
+                        e.preventDefault()
+                      }
+                    }}
+                    className="flex min-h-[44px] items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-slate-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                  >
+                    <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
+                      {p.name}
+                    </span>
+                    {PARTNER_BOOKING_URLS[p.id] ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-sky-400">
+                        열기
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500">—</span>
+                    )}
+                  </a>
                 </li>
               ))}
             </ul>

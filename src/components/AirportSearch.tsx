@@ -216,7 +216,7 @@ export function AirportSearch({
               type="button"
               onClick={handleClear}
               className="absolute right-2 min-h-[44px] min-w-[44px] rounded p-1 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
-              aria-label="지우기"
+              aria-label={ariaLabel ? `${ariaLabel} 지우기` : "입력값 지우기"}
             >
               <X className="h-4 w-4" />
             </button>
