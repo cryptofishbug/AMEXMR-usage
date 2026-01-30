@@ -32,6 +32,38 @@ export function AirportSearch({
   const modalInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+
+  // iOS Safari visualViewport를 이용한 키보드 높이 감지
+  useEffect(() => {
+    if (!open || !isMobile) {
+      setKeyboardOffset(0)
+      return
+    }
+
+    const vv = window.visualViewport
+    if (!vv) return // visualViewport API 미지원 브라우저
+
+    const updateKeyboardOffset = () => {
+      // keyboardOffset = window.innerHeight - visualViewport.height - visualViewport.offsetTop
+      const offset = window.innerHeight - vv.height - vv.offsetTop
+      // 최소 0, 음수 방지 (안전 영역 등 고려)
+      setKeyboardOffset(Math.max(0, offset))
+    }
+
+    // 초기 계산
+    updateKeyboardOffset()
+
+    // resize 이벤트로 키보드 높이 변화 감지
+    vv.addEventListener("resize", updateKeyboardOffset)
+    vv.addEventListener("scroll", updateKeyboardOffset)
+
+    return () => {
+      vv.removeEventListener("resize", updateKeyboardOffset)
+      vv.removeEventListener("scroll", updateKeyboardOffset)
+      setKeyboardOffset(0)
+    }
+  }, [open, isMobile])
 
   // 모바일 감지
   useEffect(() => {
@@ -327,6 +359,11 @@ export function AirportSearch({
           <div
             ref={modalRef}
             className="bottom-sheet-container fixed bottom-0 left-0 right-0 flex flex-col rounded-t-2xl bg-slate-900 shadow-2xl"
+            style={{
+              // iOS Safari 키보드 높이만큼 바텀시트를 위로 올림
+              transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+              transition: "transform 0.1s ease-out",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 고정 헤더 영역: 핸들 + 타이틀/닫기 + 검색 input */}
