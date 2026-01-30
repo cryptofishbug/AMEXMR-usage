@@ -359,7 +359,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: BG_NAVY }}>
+    <div id="app-root" className="min-h-screen" style={{ backgroundColor: BG_NAVY }}>
       {/* 헤더 + MR 입력 (고급 스타일) */}
       <header className="sticky top-0 z-20 border-b border-slate-700/40" style={{ backgroundColor: BG_NAVY }}>
         <div className="mx-auto max-w-5xl px-4 py-4 sm:py-5">

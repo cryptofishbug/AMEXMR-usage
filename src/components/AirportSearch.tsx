@@ -61,9 +61,28 @@ export function AirportSearch({
     setOpen(isFocused && results.length > 0)
   }, [value, airports])
 
-  // 모바일 모달: 포커스 트랩 및 ESC 닫기
+  // 모바일 모달: 포커스 트랩, ESC 닫기, body 스크롤 잠금, 배경 inert 처리
   useEffect(() => {
     if (!open || !isMobile) return
+
+    // body 스크롤 잠금
+    const originalOverflow = document.body.style.overflow
+    const originalPosition = document.body.style.position
+    const originalWidth = document.body.style.width
+    const originalTop = document.body.style.top
+    const scrollY = window.scrollY
+
+    document.body.style.overflow = "hidden"
+    document.body.style.position = "fixed"
+    document.body.style.width = "100%"
+    document.body.style.top = `-${scrollY}px`
+
+    // app-root에 inert 속성 추가 (배경 터치/포커스 차단)
+    const appRoot = document.getElementById("app-root")
+    if (appRoot) {
+      appRoot.setAttribute("inert", "")
+      appRoot.setAttribute("aria-hidden", "true")
+    }
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -98,6 +117,19 @@ export function AirportSearch({
     return () => {
       document.removeEventListener("keydown", handleEscape)
       document.removeEventListener("keydown", handleFocusTrap)
+
+      // body 스크롤 복원
+      document.body.style.overflow = originalOverflow
+      document.body.style.position = originalPosition
+      document.body.style.width = originalWidth
+      document.body.style.top = originalTop
+      window.scrollTo(0, scrollY)
+
+      // inert 속성 제거
+      if (appRoot) {
+        appRoot.removeAttribute("inert")
+        appRoot.removeAttribute("aria-hidden")
+      }
     }
   }, [open, isMobile])
 
@@ -208,7 +240,7 @@ export function AirportSearch({
             aria-label={ariaLabel}
             aria-expanded={open}
             aria-controls={open ? "airport-search-listbox" : undefined}
-            className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-900/60 py-2.5 pl-10 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+            className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-900/60 py-2.5 pl-10 pr-10 text-base sm:text-sm text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
           />
           {value && (
             <button
@@ -284,7 +316,7 @@ export function AirportSearch({
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   aria-label={ariaLabel || "공항 검색"}
-                  className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                  className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-base text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
                 />
                 {value && (
                   <button
