@@ -146,8 +146,11 @@ export function AirportSearch({
     // capture 단계에서 touchstart/mousedown 차단 (캘린더 튐 방지)
     document.addEventListener("touchstart", handleBackgroundInteraction, { capture: true, passive: false })
     document.addEventListener("mousedown", handleBackgroundInteraction, { capture: true })
-    // 모달 내부 검색 input에 포커스 (키보드 유지)
-    setTimeout(() => modalInputRef.current?.focus(), 50)
+    // 모달 내부 검색 input에 포커스 (키보드 유지) + 입력창이 보이도록 스크롤
+    setTimeout(() => {
+      modalInputRef.current?.focus()
+      modalInputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+    }, 50)
 
     return () => {
       document.removeEventListener("keydown", handleEscape)
@@ -326,67 +329,74 @@ export function AirportSearch({
             className="bottom-sheet-container fixed bottom-0 left-0 right-0 flex flex-col rounded-t-2xl bg-slate-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 드래그 핸들 */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-slate-600" aria-hidden="true" />
-            </div>
-            {/* 헤더: 타이틀 + 닫기 */}
-            <div className="flex items-center justify-between px-4 pb-2">
-              <h2 id="airport-search-modal-title" className="text-base font-semibold text-slate-200">
-                공항 검색
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false)
-                  inputRef.current?.blur()
-                }}
-                className="min-h-[44px] min-w-[44px] shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
-                aria-label="닫기"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {/* 검색 input */}
-            <div className="px-4 pb-3 no-zoom">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input
-                  ref={modalInputRef}
-                  type="text"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => {
-                    // 바텀시트가 열려있는 상태에서 포커스 유지 (결과 개수 상관없이)
-                    // 이미 open 상태이므로 별도 처리 불필요
+            {/* 고정 헤더 영역: 핸들 + 타이틀/닫기 + 검색 input */}
+            <div className="bottom-sheet-header sticky top-0 z-10 bg-slate-900 rounded-t-2xl">
+              {/* 드래그 핸들 */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="h-1 w-10 rounded-full bg-slate-600" aria-hidden="true" />
+              </div>
+              {/* 헤더: 타이틀 + 닫기 */}
+              <div className="flex items-center justify-between px-4 pb-2">
+                <h2 id="airport-search-modal-title" className="text-base font-semibold text-slate-200">
+                  공항 검색
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    inputRef.current?.blur()
                   }}
-                  onBlur={() => {
-                    // 모달 내 다른 요소(버튼 등)로 포커스가 이동하는 경우 닫지 않음
-                    setTimeout(() => {
-                      if (!modalRef.current?.contains(document.activeElement)) {
-                        setOpen(false)
-                      }
-                    }, 200)
-                  }}
-                  placeholder={placeholder}
-                  aria-label={ariaLabel || "공항 검색"}
-                  className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-base text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
-                />
-                {value && (
-                  <button
-                    type="button"
-                    onClick={handleClear}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[36px] min-w-[36px] rounded p-1 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
-                    aria-label="입력값 지우기"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
+                  className="min-h-[44px] min-w-[44px] shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                  aria-label="닫기"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {/* 검색 input */}
+              <div className="px-4 pb-3 no-zoom">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    ref={modalInputRef}
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => {
+                      // 바텀시트가 열려있는 상태에서 포커스 유지 (결과 개수 상관없이)
+                      // 이미 open 상태이므로 별도 처리 불필요
+                      // 입력창이 확실히 보이도록 scrollIntoView
+                      setTimeout(() => {
+                        modalInputRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                      }, 100)
+                    }}
+                    onBlur={() => {
+                      // 모달 내 다른 요소(버튼 등)로 포커스가 이동하는 경우 닫지 않음
+                      setTimeout(() => {
+                        if (!modalRef.current?.contains(document.activeElement)) {
+                          setOpen(false)
+                        }
+                      }, 200)
+                    }}
+                    placeholder={placeholder}
+                    aria-label={ariaLabel || "공항 검색"}
+                    className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-base text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                  />
+                  {value && (
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[36px] min-w-[36px] rounded p-1 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                      aria-label="입력값 지우기"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            {/* 결과 리스트 (스크롤 가능) */}
-            <div className="bottom-sheet-scroll flex-1 border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
+            {/* 결과 리스트 (스크롤 가능) - 헤더와 분리된 독립 스크롤 영역 */}
+            <div className="bottom-sheet-scroll flex-1 min-h-0 border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
               {filtered.length > 0 ? (
                 dropdownContent
               ) : (

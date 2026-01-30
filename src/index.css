@@ -51,10 +51,27 @@ html.scroll-locked body {
   max-height: 80dvh;
   /* safe-area 하단 여백 */
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* 내부 스크롤 구조를 위한 overflow 설정 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 바텀시트 고정 헤더 - 핸들, 타이틀, 검색창 */
+.bottom-sheet-header {
+  flex-shrink: 0;
+  /* 배경색으로 아래 리스트가 비치지 않도록 */
+  background-color: rgb(15 23 42); /* slate-900 */
+  /* 스크롤 시에도 항상 위에 표시 */
+  z-index: 10;
+  /* 하단 그림자로 시각적 분리감 */
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 }
 
 /* 바텀시트 내부 스크롤 영역 */
 .bottom-sheet-scroll {
+  flex: 1;
+  min-height: 0; /* flexbox에서 overflow 작동을 위해 필요 */
   overflow-y: auto;
   /* iOS Safari rubber-band 스크롤 억제 */
   overscroll-behavior: contain;
