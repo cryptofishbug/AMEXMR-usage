@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep-navy: #0a0e17;
+  --text-primary: #e2e8f0;
+  --border-subtle: rgba(148, 163, 184, 0.12);
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-deep-navy);
+  color: var(--text-primary);
+}
+
+/* 숫자 카운터 전환 애니메이션 */
+@keyframes value-pop {
+  from {
+    opacity: 0.6;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-value-change {
+  animation: value-pop 0.35s ease-out;
+}
