@@ -5,8 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 // GitHub Pages: cryptofishbug.github.io/AMEXMR-usage/
 // 루트 도메인에 배포하면 base: '/'
 export default defineConfig({
-  // Note: GitHub Pages seems to still be serving from repo root; publish build under /docs.
-  base: '/AMEXMR-usage/docs/',
+  // GitHub Pages for this repo is served at https://cryptofishbug.github.io/AMEXMR-usage/
+  // (repo pages with source set to /docs). Assets should be under /AMEXMR-usage/ (no extra /docs).
+  base: '/AMEXMR-usage/',
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'docs',
