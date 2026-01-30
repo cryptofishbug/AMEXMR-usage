@@ -924,8 +924,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* 3. 날짜 (From/To) - 편도일 때 Date to 숨김 */}
-            <div className={`mt-4 grid gap-4 overflow-hidden ${routeType === "roundtrip" ? "grid-cols-2" : "grid-cols-1 sm:max-w-[50%]"}`}>
+            {/* 3. 날짜 (From/To) - 모바일 1열, 데스크탑 2열 / 편도일 때 Date to 숨김 */}
+            <div className={`mt-4 grid gap-4 ${routeType === "roundtrip" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:max-w-[50%]"}`}>
               <div className="min-w-0">
                 <label htmlFor="date-from-input" className="mb-1 block text-[11px] font-medium text-slate-500">
                   {routeType === "oneway" ? "출발일" : "Date from"}
@@ -935,7 +935,7 @@ export default function App() {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full max-w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-2 py-1.5 text-xs text-slate-200 sm:px-3 sm:py-2 sm:text-sm focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30 [&::-webkit-datetime-edit]:overflow-hidden [&::-webkit-datetime-edit]:text-ellipsis"
+                  className="w-full min-h-[44px] max-w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30 [&::-webkit-datetime-edit]:overflow-hidden [&::-webkit-datetime-edit]:text-ellipsis"
                 />
               </div>
               {routeType === "roundtrip" && (
@@ -946,7 +946,7 @@ export default function App() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full max-w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-2 py-1.5 text-xs text-slate-200 sm:px-3 sm:py-2 sm:text-sm focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30 [&::-webkit-datetime-edit]:overflow-hidden [&::-webkit-datetime-edit]:text-ellipsis"
+                    className="w-full min-h-[44px] max-w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30 [&::-webkit-datetime-edit]:overflow-hidden [&::-webkit-datetime-edit]:text-ellipsis"
                   />
                 </div>
               )}
