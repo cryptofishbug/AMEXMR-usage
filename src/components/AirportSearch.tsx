@@ -68,10 +68,11 @@ export function AirportSearch({
     // iOS Safari 스크롤 락: position:fixed 대신 CSS 클래스 토글 (레이아웃 점프 방지)
     const scrollY = window.scrollY
     document.documentElement.classList.add("scroll-locked")
-    // 스크롤 위치 기억 (CSS에서 position:fixed 안 쓰므로 직접 유지 불필요)
+    // modal-open 클래스 추가: #app에 pointer-events:none 적용 (CSS에서)
+    document.documentElement.classList.add("modal-open")
 
-    // app-root에 inert 속성 추가 (배경 터치/포커스 차단)
-    const appRoot = document.getElementById("app-root")
+    // #app에 inert 속성 추가 (배경 터치/포커스 차단)
+    const appRoot = document.getElementById("app")
     if (appRoot) {
       appRoot.setAttribute("inert", "")
       appRoot.setAttribute("aria-hidden", "true")
@@ -113,9 +114,23 @@ export function AirportSearch({
       e.preventDefault()
     }
 
+    // iOS Safari: 배경 date input 캘린더 튐 방지 - capture 단계에서 차단
+    const handleBackgroundInteraction = (e: Event) => {
+      // 모달 내부 이벤트는 허용
+      if (modalRef.current?.contains(e.target as Node)) {
+        return
+      }
+      // 배경 이벤트 완전 차단
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     document.addEventListener("keydown", handleEscape)
     document.addEventListener("keydown", handleFocusTrap)
     document.addEventListener("touchmove", handleTouchMove, { passive: false })
+    // capture 단계에서 touchstart/mousedown 차단 (캘린더 튐 방지)
+    document.addEventListener("touchstart", handleBackgroundInteraction, { capture: true, passive: false })
+    document.addEventListener("mousedown", handleBackgroundInteraction, { capture: true })
     // 모달 내부 검색 input에 포커스 (키보드 유지)
     setTimeout(() => modalInputRef.current?.focus(), 50)
 
@@ -123,9 +138,12 @@ export function AirportSearch({
       document.removeEventListener("keydown", handleEscape)
       document.removeEventListener("keydown", handleFocusTrap)
       document.removeEventListener("touchmove", handleTouchMove)
+      document.removeEventListener("touchstart", handleBackgroundInteraction, { capture: true })
+      document.removeEventListener("mousedown", handleBackgroundInteraction, { capture: true })
 
       // CSS 클래스 기반 스크롤 락 해제
       document.documentElement.classList.remove("scroll-locked")
+      document.documentElement.classList.remove("modal-open")
       // 원래 스크롤 위치로 복원 (점프 없이)
       window.scrollTo(0, scrollY)
 
@@ -218,7 +236,7 @@ export function AirportSearch({
 
   return (
     <>
-      <div ref={containerRef} className={`relative z-10 ${className}`}>
+      <div ref={containerRef} className={`relative z-10 no-zoom ${className}`}>
         <div className="relative flex items-center">
           <Search className="absolute left-3 h-4 w-4 shrink-0 text-slate-500" />
           <input
@@ -309,7 +327,7 @@ export function AirportSearch({
               </button>
             </div>
             {/* 검색 input */}
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 no-zoom">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input

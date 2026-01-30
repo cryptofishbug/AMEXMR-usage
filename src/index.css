@@ -69,3 +69,17 @@ html.scroll-locked body {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* 모달 열렸을 때 배경(#app) 터치/포커스 완전 차단 */
+html.modal-open #app {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* iOS Safari 줌 방지: input font-size 16px 이상 강제 */
+.no-zoom input,
+.no-zoom textarea,
+.no-zoom select {
+  font-size: 16px !important;
+}
