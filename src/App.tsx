@@ -20,25 +20,30 @@ const GRAYPANE_SITE = "https://www.graypane.com"
 /** GrayPane 자체 배포 시 base만 바꾸면 됨 (예: clone 후 Vercel 배포) */
 const GRAYPANE_EMBED_BASE = GRAYPANE_SITE
 
-/** GrayPane 검색 URL: origin, destination, selectedDate, dateFrom, dateTo, searchWindowDays (편도 조회) */
+/** GrayPane 검색 URL: origin, destination, selectedDate, dateFrom, dateTo, searchWindowDays */
 function buildGrayPaneSearchUrl(p: SearchParams): string {
   const origin = getIataForUrl(p.from)
   const destination = getIataForUrl(p.to)
   const dateFrom = toValidDateStr(p.dateFrom, DEFAULT_DEPART_DATE)
-  const dateTo = toValidDateStr(p.dateTo, (() => {
-    const d = new Date(dateFrom)
-    d.setDate(d.getDate() + 30)
-    return d.toISOString().slice(0, 10)
-  })())
-  const searchWindowDays = Math.min(30, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000)) || 30)
   const params = new URLSearchParams({
     origin,
     destination,
     selectedDate: dateFrom,
     dateFrom,
-    dateTo,
-    searchWindowDays: String(searchWindowDays),
   })
+  // 왕복일 때만 dateTo, searchWindowDays 포함
+  if (p.routeType === "roundtrip") {
+    const dateTo = toValidDateStr(p.dateTo, (() => {
+      const d = new Date(dateFrom)
+      d.setDate(d.getDate() + 30)
+      return d.toISOString().slice(0, 10)
+    })())
+    const searchWindowDays = Math.min(30, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000)) || 30)
+    params.set("dateTo", dateTo)
+    params.set("searchWindowDays", String(searchWindowDays))
+  } else {
+    params.set("searchWindowDays", "1")
+  }
   return `${GRAYPANE_EMBED_BASE.replace(/\/$/, "")}/search?${params.toString()}`
 }
 const AWARDHACKER_BASE = "https://www.awardhacker.com"
@@ -107,16 +112,14 @@ function buildPointsYeahUrl(p: SearchParams): string {
   return `https://www.pointsyeah.com/search?${params.toString()}`
 }
 
-/** AwardTool: from, to, flightWay=oneway|roundtrip, cabins; 편도=oneWayRange*, 왕복=roundTripDepartureDate/roundTripReturnDate */
+/** AwardTool: from, to, flightWay=oneway|roundtrip, cabins; 편도=oneWayRangeStartDate, 왕복=roundTripDepartureDate/roundTripReturnDate */
 function buildAwardToolUrl(p: SearchParams): string {
   const from = getIataForUrl(p.from)
   const to = getIataForUrl(p.to)
   const flightWay = p.routeType === "oneway" ? "oneway" : "roundtrip"
   const cabins = "Economy%26Premium+Economy%26Business%26First"
   const dateFrom = toValidDateStr(p.dateFrom, DEFAULT_DEPART_DATE)
-  const dateTo = toValidDateStr(p.dateTo, dateFrom)
   const unixFrom = Math.floor(new Date(dateFrom).getTime() / 1000)
-  const unixTo = Math.floor(new Date(dateTo).getTime() / 1000)
 
   const params = new URLSearchParams({
     flightWay,
@@ -128,16 +131,16 @@ function buildAwardToolUrl(p: SearchParams): string {
     programs: AWARDTOOL_PROGRAMS,
     targetId: "",
   })
+  params.set("range", "false")
+  params.set("rangeV2", "false")
   if (flightWay === "roundtrip") {
-    params.set("range", "false")
-    params.set("rangeV2", "false")
+    const dateTo = toValidDateStr(p.dateTo, dateFrom)
+    const unixTo = Math.floor(new Date(dateTo).getTime() / 1000)
     params.set("roundTripDepartureDate", String(unixFrom))
     params.set("roundTripReturnDate", String(unixTo))
   } else {
-    params.set("range", "false")
-    params.set("rangeV2", "false")
+    // 편도: oneWayRangeStartDate만 설정 (endDate 제외)
     params.set("oneWayRangeStartDate", String(unixFrom))
-    params.set("oneWayRangeEndDate", String(unixTo))
   }
   return `https://www.awardtool.com/flight?${params.toString()}`
 }
@@ -158,6 +161,7 @@ function buildRoameUrl(p: SearchParams): string {
     first: "FIRST",
   }
   const searchClass = cabinToClass[p.cabin]
+  const departureDate = toValidDateStr(p.dateFrom, DEFAULT_DEPART_DATE)
   const params = new URLSearchParams()
   params.set("origin", origin)
   params.set("originType", "airport")
@@ -165,8 +169,11 @@ function buildRoameUrl(p: SearchParams): string {
   params.set("destinationType", "airport")
   params.set("originId", "76835")
   params.set("destinationId", "78285")
-  params.set("departureDate", toValidDateStr(p.dateFrom, DEFAULT_DEPART_DATE))
-  params.set("endDepartureDate", toValidDateStr(p.dateTo, p.dateFrom || DEFAULT_DEPART_DATE))
+  params.set("departureDate", departureDate)
+  // 왕복일 때만 endDepartureDate 포함 (편도 시 제외)
+  if (p.routeType === "roundtrip") {
+    params.set("endDepartureDate", toValidDateStr(p.dateTo, departureDate))
+  }
   params.set("pax", "1")
   params.set("searchClass", searchClass)
   params.set("fareClasses", searchClass)
@@ -894,66 +901,55 @@ export default function App() {
               </div>
             </div>
 
-            {/* 2. 날짜 (From/To) */}
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {/* 2. 편도/왕복 토글 (날짜 위로 이동) */}
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Route</span>
+              <div className="flex gap-1.5" role="radiogroup" aria-label="편도/왕복 선택">
+                {(["oneway", "roundtrip"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    role="radio"
+                    aria-checked={routeType === r}
+                    onClick={() => setRouteType(r)}
+                    className={`min-h-[44px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      routeType === r
+                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
+                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
+                    }`}
+                  >
+                    {r === "oneway" ? "편도" : "왕복"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. 날짜 (From/To) - 편도일 때 Date to 숨김 */}
+            <div className={`mt-4 grid gap-4 ${routeType === "roundtrip" ? "sm:grid-cols-2" : "sm:grid-cols-1 sm:max-w-[50%]"}`}>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-slate-500">Date from</label>
+                <label htmlFor="date-from-input" className="mb-1 block text-[11px] font-medium text-slate-500">
+                  {routeType === "oneway" ? "출발일" : "Date from"}
+                </label>
                 <input
+                  id="date-from-input"
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   className="w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-slate-500">Date to</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
-                />
-              </div>
-            </div>
-
-            {/* 3. 편도/왕복 (항상 표시) */}
-            <div className="mt-4 flex items-center gap-2 sm:hidden">
-              <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Route</span>
-              <div className="flex gap-1.5">
-                {(["oneway", "roundtrip"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRouteType(r)}
-                    className={`min-h-[44px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      routeType === r
-                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {r === "oneway" ? "편도" : "왕복"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 hidden items-center gap-2 sm:flex">
-              <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Route</span>
-              <div className="flex gap-1.5">
-                {(["oneway", "roundtrip"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRouteType(r)}
-                    className={`min-h-[44px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      routeType === r
-                        ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                        : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                    }`}
-                  >
-                    {r === "oneway" ? "편도" : "왕복"}
-                  </button>
-                ))}
-              </div>
+              {routeType === "roundtrip" && (
+                <div>
+                  <label htmlFor="date-to-input" className="mb-1 block text-[11px] font-medium text-slate-500">Date to (귀환일)</label>
+                  <input
+                    id="date-to-input"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                  />
+                </div>
+              )}
             </div>
 
             {/* 4. 상세 옵션 (경유/캐빈) - 헤더에 요약 표시 */}
