@@ -29,9 +29,9 @@ export function AirportSearch({
   const [filtered, setFiltered] = useState<AirportData[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const modalInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
-  const firstResultRef = useRef<HTMLButtonElement>(null)
 
   // 모바일 감지
   useEffect(() => {
@@ -92,8 +92,8 @@ export function AirportSearch({
 
     document.addEventListener("keydown", handleEscape)
     document.addEventListener("keydown", handleFocusTrap)
-    // 첫 번째 결과에 포커스 (모바일 모달 열릴 때)
-    setTimeout(() => firstResultRef.current?.focus(), 100)
+    // 모달 내부 검색 input에 포커스 (키보드 유지)
+    setTimeout(() => modalInputRef.current?.focus(), 50)
 
     return () => {
       document.removeEventListener("keydown", handleEscape)
@@ -153,10 +153,9 @@ export function AirportSearch({
         {filtered.length} results
       </div>
       <ul className="py-1" role="listbox">
-        {filtered.map((airport, idx) => (
+        {filtered.map((airport) => (
           <li key={airport.id} role="option">
             <button
-              ref={idx === 0 ? firstResultRef : undefined}
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(airport)}
@@ -259,14 +258,34 @@ export function AirportSearch({
                   setOpen(false)
                   inputRef.current?.blur()
                 }}
-                className="min-h-[44px] min-w-[44px] rounded-lg p-2 text-slate-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                className="min-h-[44px] min-w-[44px] shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
                 aria-label="닫기"
               >
                 <X className="h-5 w-5" />
               </button>
-              <h2 id="airport-search-modal-title" className="flex-1 text-sm font-semibold text-slate-200">
-                {ariaLabel || "공항 검색"}
-              </h2>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  ref={modalInputRef}
+                  type="text"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  aria-label={ariaLabel || "공항 검색"}
+                  className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
+                />
+                {value && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[36px] min-w-[36px] rounded p-1 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                    aria-label="입력값 지우기"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex-1 overflow-auto" role="listbox" id="airport-search-listbox">
               {dropdownContent}
