@@ -47,10 +47,11 @@ export function AirportSearch({
     const v = value.trim()
     if (!v) {
       setFiltered([])
-      // 모바일 바텀시트가 열려있는 동안에는 닫지 않음 (빈 value일 때만 닫음)
+      // 모바일 바텀시트가 열려있는 동안에는 닫지 않음 (빈 value일 때도 open 유지)
       if (!isMobile || !open) {
         setOpen(false)
       }
+      // 모바일에서 바텀시트가 열려있으면 그대로 유지
       return
     }
 
@@ -65,9 +66,14 @@ export function AirportSearch({
       document.activeElement === inputRef.current ||
       document.activeElement === modalInputRef.current
 
-    // 모바일 바텀시트가 이미 열려있는 경우 유지 (value 변경 시에도 닫히지 않음)
-    const shouldKeepOpen = (open && isMobile) || isFocused
-    setOpen(shouldKeepOpen && results.length > 0)
+    // 모바일 바텀시트가 이미 열려있는 경우: 결과 개수와 상관없이 유지
+    if (open && isMobile) {
+      // 모바일에서 바텀시트 열림 상태 유지 (결과 0개여도 닫지 않음)
+      return
+    }
+
+    // 데스크탑: 결과가 있고 포커스된 경우에만 열기
+    setOpen(isFocused && results.length > 0)
   }, [value, airports, isMobile, open])
 
   // 모바일 모달: 포커스 트랩, ESC 닫기, body 스크롤 잠금, 배경 inert 처리
@@ -191,9 +197,15 @@ export function AirportSearch({
   const handleClear = useCallback(() => {
     onChange("")
     onSelect(null)
-    setOpen(false)
-    inputRef.current?.focus()
-  }, [onChange, onSelect])
+    // 모바일에서는 바텀시트를 유지하고 modalInputRef에 포커스
+    if (isMobile && open) {
+      // open 유지, modalInputRef에 포커스
+      setTimeout(() => modalInputRef.current?.focus(), 0)
+    } else {
+      setOpen(false)
+      inputRef.current?.focus()
+    }
+  }, [onChange, onSelect, isMobile, open])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -295,8 +307,8 @@ export function AirportSearch({
           </div>
         )}
       </div>
-      {/* 모바일 바텀시트 */}
-      {isMobile && open && filtered.length > 0 && typeof document !== "undefined" && createPortal(
+      {/* 모바일 바텀시트 - open 상태면 결과 개수와 상관없이 유지 */}
+      {isMobile && open && typeof document !== "undefined" && createPortal(
         <div
           className="bottom-sheet-overlay z-[100] bg-black/60 backdrop-blur-sm"
           role="dialog"
@@ -346,10 +358,8 @@ export function AirportSearch({
                   onChange={(e) => onChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={() => {
-                    // 바텀시트가 열려있는 상태에서 포커스 유지
-                    if (filtered.length > 0) {
-                      setOpen(true)
-                    }
+                    // 바텀시트가 열려있는 상태에서 포커스 유지 (결과 개수 상관없이)
+                    // 이미 open 상태이므로 별도 처리 불필요
                   }}
                   onBlur={() => {
                     // 모달 내 다른 요소(버튼 등)로 포커스가 이동하는 경우 닫지 않음
@@ -377,7 +387,21 @@ export function AirportSearch({
             </div>
             {/* 결과 리스트 (스크롤 가능) */}
             <div className="bottom-sheet-scroll flex-1 border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
-              {dropdownContent}
+              {filtered.length > 0 ? (
+                dropdownContent
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <MapPin className="h-10 w-10 text-slate-600 mb-3" />
+                  <p className="text-sm text-slate-400">
+                    {value.trim() ? "검색 결과가 없습니다" : "검색어를 입력하세요"}
+                  </p>
+                  {value.trim() && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      다른 공항명, IATA 코드, 도시명으로 검색해 보세요
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>,
