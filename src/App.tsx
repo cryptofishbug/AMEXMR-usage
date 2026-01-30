@@ -969,21 +969,24 @@ export default function App() {
                   }
                   setExpandedTicketSections(newSet)
                 }}
-                className="flex w-full items-center justify-between rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2.5 text-xs transition-colors hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2.5 text-xs transition-colors hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
                 aria-expanded={expandedTicketSections.has("advanced")}
                 aria-controls="advanced-options-panel"
                 aria-label={expandedTicketSections.has("advanced") ? "상세 옵션 접기" : "상세 옵션 펼치기"}
               >
-                <span className="flex items-center gap-2 text-slate-300">
-                  <span>상세 옵션</span>
-                  <span className="text-[10px] text-slate-500">
+                <span className="flex min-w-0 flex-1 items-center gap-2 text-slate-300">
+                  <span className="shrink-0">상세 옵션</span>
+                  <span
+                    className="truncate text-[10px] text-slate-500"
+                    title={`· ${stops === 0 ? "직항" : `${stops}경유`} · ${cabin === "economy" ? "Economy" : cabin === "premium" ? "Premium Economy" : cabin === "business" ? "Business" : "First"}`}
+                  >
                     · {stops === 0 ? "직항" : `${stops}경유`} · {cabin === "economy" ? "Economy" : cabin === "premium" ? "Premium Economy" : cabin === "business" ? "Business" : "First"}
                   </span>
                 </span>
                 {expandedTicketSections.has("advanced") ? (
-                  <ChevronUp className="h-4 w-4 text-slate-400" />
+                  <ChevronUp className="shrink-0 h-4 w-4 text-slate-400" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                  <ChevronDown className="shrink-0 h-4 w-4 text-slate-400" />
                 )}
               </button>
               {expandedTicketSections.has("advanced") && (
