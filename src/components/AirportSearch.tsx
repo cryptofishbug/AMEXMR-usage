@@ -30,14 +30,21 @@ export function AirportSearch({
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!value.trim()) {
+    const v = value.trim()
+    if (!v) {
       setFiltered([])
       setOpen(false)
       return
     }
-    const results = searchAirports(value, 10, airports)
+
+    const results = searchAirports(v, 10, airports)
     setFiltered(results)
-    setOpen(results.length > 0)
+
+    // Only open the dropdown when the input is actually focused.
+    // Otherwise, switching tabs with prefilled values can cause the menu to pop
+    // under the cursor and look like items are "hovered"/preselected.
+    const isFocused = document.activeElement === inputRef.current
+    setOpen(isFocused && results.length > 0)
   }, [value, airports])
 
   useEffect(() => {
@@ -93,6 +100,7 @@ export function AirportSearch({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => filtered.length > 0 && setOpen(true)}
+          onBlur={() => setOpen(false)}
           placeholder={placeholder}
           aria-label={ariaLabel}
           className="w-full rounded-lg border border-slate-600/60 bg-slate-900/60 py-2.5 pl-10 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
@@ -121,6 +129,9 @@ export function AirportSearch({
               <li key={airport.id} role="option">
                 <button
                   type="button"
+                  // Prevent the input from losing focus on mousedown (blur closes the menu)
+                  // so clicking an option works reliably.
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(airport)}
                   className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-700/50"
                 >
