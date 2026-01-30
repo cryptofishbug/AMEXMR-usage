@@ -544,20 +544,23 @@ export default function App() {
                           >
                             {partner.category}
                           </span>
-                          <span className="text-[9px] text-slate-500">{formatRatio(partner.ratio)}</span>
                         </div>
-                        <div className="mt-2 flex items-baseline gap-4 text-xs">
-                          <div>
-                            <span className="text-slate-500 text-[10px]">예상 가치</span>
-                            <p className={`mt-0.5 font-bold text-sm ${isAboveGift ? "text-emerald-400" : "text-slate-200"}`}>
-                              {formatKRW(cashValue)}
-                            </p>
+                        <div className="mt-2 space-y-1.5">
+                          {/* 전환비율 + 전환 후 마일/포인트 */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-slate-500 text-[10px]">전환비율</span>
+                            <span className="font-medium text-slate-300">{formatRatio(partner.ratio)}</span>
+                            <span className="text-slate-600">→</span>
+                            <span className="font-semibold text-sky-300">
+                              {formatNumber(miles)} {partner.category === "호텔" ? "pts" : "마일"}
+                            </span>
                           </div>
-                          <div>
-                            <span className="text-slate-500 text-[10px]">전환 {partner.category === "호텔" ? "pts" : "마일"}</span>
-                            <p className="mt-0.5 font-medium text-sm text-slate-200">
-                              {formatNumber(miles)}
-                            </p>
+                          {/* 예상 가치 */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-slate-500 text-[10px]">예상 가치</span>
+                            <span className={`font-bold text-sm ${isAboveGift ? "text-emerald-400" : "text-slate-200"}`}>
+                              {formatKRW(cashValue)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -587,18 +590,6 @@ export default function App() {
                     {/* 접기 가능한 상세 정보 */}
                     {isExpanded && (
                       <div className="mt-3 space-y-2 border-t border-slate-700/40 pt-3">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              partner.category === "항공"
-                                ? "bg-sky-500/20 text-sky-300"
-                                : "bg-violet-500/20 text-violet-300"
-                            }`}
-                          >
-                            {partner.category}
-                          </span>
-                          <span className="text-[10px] text-slate-400">전환비율: {formatRatio(partner.ratio)}</span>
-                        </div>
                         {"strategyByRegion" in partner && partner.strategyByRegion ? (
                           <div>
                             <p className="mb-1.5 text-[10px] font-medium text-slate-400">지역별 전략</p>
@@ -986,7 +977,7 @@ export default function App() {
                 <span className="flex items-center gap-2 text-slate-300">
                   <span>상세 옵션</span>
                   <span className="text-[10px] text-slate-500">
-                    · {routeType === "oneway" ? "편도" : "왕복"} · {cabin === "economy" ? "Economy" : cabin === "premium" ? "Premium Economy" : cabin === "business" ? "Business" : "First"} · {stops === 0 ? "직항" : `${stops}경유`}
+                    · {stops === 0 ? "직항" : `${stops}경유`} · {cabin === "economy" ? "Economy" : cabin === "premium" ? "Premium Economy" : cabin === "business" ? "Business" : "First"}
                   </span>
                 </span>
                 {expandedTicketSections.has("advanced") ? (
@@ -1013,25 +1004,6 @@ export default function App() {
                             }`}
                           >
                             {s === 0 ? "직항" : `${s}경유`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2 sm:hidden">
-                      <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Route</span>
-                      <div className="flex gap-1.5">
-                        {(["oneway", "roundtrip"] as const).map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => setRouteType(r)}
-                            className={`min-h-[44px] shrink-0 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors ${
-                              routeType === r
-                                ? "border-sky-500/50 bg-sky-500/20 text-sky-300"
-                                : "border-slate-600/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50"
-                            }`}
-                          >
-                            {r === "oneway" ? "편도" : "왕복"}
                           </button>
                         ))}
                       </div>
