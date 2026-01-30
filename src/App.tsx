@@ -286,10 +286,17 @@ export default function App() {
   const [cabin, setCabin] = useState<SearchParams["cabin"]>("business")
   const [stops, setStops] = useState<SearchParams["stops"]>(0)
   const [airports, setAirports] = useState<AirportData[]>(AIRPORTS)
+  const [airportsLoaded, setAirportsLoaded] = useState(false)
 
+  // 티켓 탭 진입 시 airports 동적 로드
   useEffect(() => {
-    loadFullAirports().then(setAirports)
-  }, [])
+    if (activeTab === "ticket" && !airportsLoaded) {
+      loadFullAirports().then((loaded) => {
+        setAirports(loaded)
+        setAirportsLoaded(true)
+      })
+    }
+  }, [activeTab, airportsLoaded])
 
   const searchParams: SearchParams = useMemo(
     () => ({
@@ -376,14 +383,29 @@ export default function App() {
         </div>
       </header>
 
-      {/* 탭: MR 전환 효율 | 티켓 조회 */}
-      <section className="border-b border-slate-700/30 bg-slate-900/40">
+      {/* 탭: MR 전환 효율 | 티켓 조회 (ARIA 탭 패턴 + sticky) */}
+      <section className="sticky top-[73px] z-10 border-b border-slate-700/30 bg-slate-900/40">
         <div className="mx-auto max-w-5xl px-4 py-2">
-          <div className="flex gap-1 rounded-lg border border-slate-600/60 bg-slate-800/40 p-1">
+          <div
+            role="tablist"
+            aria-label="메인 탭"
+            className="flex gap-1 rounded-lg border border-slate-600/60 bg-slate-800/40 p-1"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "mr"}
+              aria-controls="mr-tabpanel"
+              id="mr-tab"
               onClick={() => setActiveTab("mr")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight") {
+                  e.preventDefault()
+                  document.getElementById("ticket-tab")?.focus()
+                  setActiveTab("ticket")
+                }
+              }}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 ${
                 activeTab === "mr"
                   ? "bg-slate-600 text-white"
                   : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300"
@@ -393,8 +415,19 @@ export default function App() {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "ticket"}
+              aria-controls="ticket-tabpanel"
+              id="ticket-tab"
               onClick={() => setActiveTab("ticket")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") {
+                  e.preventDefault()
+                  document.getElementById("mr-tab")?.focus()
+                  setActiveTab("mr")
+                }
+              }}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 ${
                 activeTab === "ticket"
                   ? "bg-slate-600 text-white"
                   : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300"
@@ -408,36 +441,153 @@ export default function App() {
       </section>
 
       {activeTab === "mr" && (
-        <>
-      {/* 필터 */}
+        <div role="tabpanel" id="mr-tabpanel" aria-labelledby="mr-tab">
+      {/* 필터 + 모바일 정렬 드롭다운 */}
       <section className="border-b border-slate-700/30 bg-slate-900/40">
         <div className="mx-auto max-w-5xl px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">카테고리</span>
-            <div className="flex overflow-hidden rounded-lg border border-slate-600/60 bg-slate-800/50">
-              {(["전체", "항공", "호텔"] as const).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-                    categoryFilter === cat
-                      ? "bg-slate-600 text-white"
-                      : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300"
-                  }`}
-                >
-                  {cat === "항공" && <Plane className="h-3.5 w-3.5" />}
-                  {cat === "호텔" && <Hotel className="h-3.5 w-3.5" />}
-                  {cat}
-                </button>
-              ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">카테고리</span>
+              <div className="flex overflow-hidden rounded-lg border border-slate-600/60 bg-slate-800/50">
+                {(["전체", "항공", "호텔"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`flex min-h-[44px] items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 ${
+                      categoryFilter === cat
+                        ? "bg-slate-600 text-white"
+                        : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-300"
+                    }`}
+                  >
+                    {cat === "항공" && <Plane className="h-3.5 w-3.5" />}
+                    {cat === "호텔" && <Hotel className="h-3.5 w-3.5" />}
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* 모바일 정렬 드롭다운 (sm 미만) */}
+            <div className="sm:hidden">
+              <select
+                value={sortBy ? `${sortBy}-${sortDir}` : ""}
+                onChange={(e) => {
+                  const [key, dir] = e.target.value.split("-")
+                  if (key === "miles" || key === "cashValue") {
+                    setSortBy(key)
+                    setSortDir(dir as "asc" | "desc")
+                  } else {
+                    setSortBy(null)
+                  }
+                }}
+                className="min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2 text-xs text-slate-200 focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                aria-label="정렬 기준 선택"
+              >
+                <option value="">정렬 안 함</option>
+                <option value="miles-desc">전환 마일/pts ↓</option>
+                <option value="miles-asc">전환 마일/pts ↑</option>
+                <option value="cashValue-desc">예상 현금가치 ↓</option>
+                <option value="cashValue-asc">예상 현금가치 ↑</option>
+              </select>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 테이블 */}
-      <main className="mx-auto max-w-5xl px-4 py-4">
+      {/* 모바일 카드 뷰 (sm 미만) */}
+      <main className="mx-auto max-w-5xl px-4 py-4 sm:hidden">
+        <div className="space-y-3">
+          {rows.map(({ partner, miles, cashValue, badge }) => {
+            const isAboveGift = cashValue > giftValue
+            return (
+              <button
+                key={partner.id}
+                type="button"
+                onClick={() => goToTicketTab(partner)}
+                className="w-full rounded-xl border border-slate-700/40 bg-slate-900/30 p-4 text-left transition-colors hover:bg-sky-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-700/50 text-slate-400">
+                    {partner.category === "호텔" ? (
+                      <Hotel className="h-5 w-5" />
+                    ) : (
+                      <Plane className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-medium" style={{ color: TEXT_PRIMARY }}>
+                          {partner.name.includes(" (") ? partner.name.split(" (")[0] : partner.name}
+                        </h3>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              partner.category === "항공"
+                                ? "bg-sky-500/20 text-sky-300"
+                                : "bg-violet-500/20 text-violet-300"
+                            }`}
+                          >
+                            {partner.category}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{formatRatio(partner.ratio)}</span>
+                        </div>
+                      </div>
+                      {badge && (
+                        <span
+                          title={badge.tooltip}
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            badge.type === "best"
+                              ? "bg-emerald-500/25 text-emerald-400"
+                              : badge.type === "versatile"
+                                ? "bg-sky-500/20 text-sky-400"
+                                : badge.type === "qatar_tip"
+                                  ? "bg-amber-500/25 text-amber-400"
+                                  : ""
+                          }`}
+                        >
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-500">전환</span>
+                        <p className="mt-0.5 font-medium text-slate-200">
+                          {partner.category === "호텔" ? `${formatNumber(miles)} pts` : `${formatNumber(miles)} 마일`}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">예상 가치</span>
+                        <p className={`mt-0.5 font-bold ${isAboveGift ? "text-emerald-400" : "text-slate-200"}`}>
+                          {formatKRW(cashValue)}
+                        </p>
+                      </div>
+                    </div>
+                    {"strategyByRegion" in partner && partner.strategyByRegion ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {REGIONS.filter((r) => partner.strategyByRegion?.[r.key]).map((r) => (
+                          <span
+                            key={r.key}
+                            className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium ${r.badgeClass}`}
+                          >
+                            {r.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{partner.strategy}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </main>
+
+      {/* 데스크탑 테이블 뷰 (sm 이상) */}
+      <main className="mx-auto hidden max-w-5xl px-4 py-4 sm:block">
         <div className="rounded-xl border border-slate-700/40 bg-slate-900/30">
           <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full border-collapse text-sm">
@@ -448,8 +598,15 @@ export default function App() {
                   <th className="shrink-0 min-w-[4.5rem] py-4 px-3 align-middle whitespace-nowrap">카테고리</th>
                   <th className="whitespace-nowrap py-4 px-3 text-right align-middle">전환비율</th>
                   <th
-                    className="cursor-pointer whitespace-nowrap py-4 px-3 text-right align-middle transition-colors hover:text-sky-300"
+                    className="cursor-pointer whitespace-nowrap py-4 px-3 text-right align-middle transition-colors hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
                     onClick={() => handleSort("miles")}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleSort("miles")
+                      }
+                    }}
                   >
                     <span className="inline-flex items-center gap-1">
                       전환 마일/pts
@@ -457,8 +614,15 @@ export default function App() {
                     </span>
                   </th>
                   <th
-                    className="cursor-pointer whitespace-nowrap py-4 px-3 text-right align-middle transition-colors hover:text-sky-300"
+                    className="cursor-pointer whitespace-nowrap py-4 px-3 text-right align-middle transition-colors hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50"
                     onClick={() => handleSort("cashValue")}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleSort("cashValue")
+                      }
+                    }}
                   >
                     <span className="inline-flex items-center gap-1">
                       예상 현금가치
@@ -488,7 +652,7 @@ export default function App() {
                         </div>
                       </td>
                       <td
-                        className="cursor-pointer align-middle py-4 pl-2 pr-4 transition-colors hover:bg-sky-500/10"
+                        className="cursor-pointer align-middle py-4 pl-2 pr-4 transition-colors hover:bg-sky-500/10 focus-within:bg-sky-500/10"
                         onClick={() => goToTicketTab(partner)}
                         role="gridcell"
                       >
@@ -610,10 +774,11 @@ export default function App() {
           전환비율은 MR당 마일/포인트 산출 기준입니다. 헤더 클릭 시 정렬됩니다. 파트너 이름 클릭 시 티켓 조회 탭으로 이동합니다. 지역별 전략(아시아·유럽·미국·중동) 뱃지는 호버 시 상세 내용을 표시합니다.
         </p>
       </main>
-        </>
+        </div>
       )}
 
       {activeTab === "ticket" && (
+        <div role="tabpanel" id="ticket-tabpanel" aria-labelledby="ticket-tab">
         <main className="mx-auto max-w-5xl px-4 py-6">
           <h2 className="mb-4 text-lg font-semibold" style={{ color: TEXT_PRIMARY }}>
             티켓 · 예약 조회
@@ -641,7 +806,7 @@ export default function App() {
             </div>
           )}
 
-          {/* 검색 조건: Apple 지도 + 공항 자동완성 (GrayPane 참고) */}
+          {/* 검색 조건: Google 지도 + 공항 자동완성 */}
           <div className="mb-6 rounded-xl border border-slate-600/60 bg-slate-800/50 p-5 shadow-inner">
             <p className="mb-4 text-xs font-medium uppercase tracking-wider text-slate-400">
               검색 조건 · 아래 툴 링크에 반영
@@ -748,7 +913,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-            {/* Apple 지도: 출발/도착 선택 시 노선 표시 (GrayPane airport-map 참고) */}
+            {/* Google 지도: 출발/도착 선택 시 노선 표시 */}
             <div className="mt-4">
               <p className="mb-2 text-[11px] font-medium text-slate-500">지도</p>
               <AirportMap
@@ -818,6 +983,7 @@ export default function App() {
             </ul>
           </div>
         </main>
+        </div>
       )}
 
       <footer className="border-t border-slate-700/30 py-3 text-center text-xs text-slate-500">
