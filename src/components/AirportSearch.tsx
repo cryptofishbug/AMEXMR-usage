@@ -47,7 +47,10 @@ export function AirportSearch({
     const v = value.trim()
     if (!v) {
       setFiltered([])
-      setOpen(false)
+      // 모바일 바텀시트가 열려있는 동안에는 닫지 않음 (빈 value일 때만 닫음)
+      if (!isMobile || !open) {
+        setOpen(false)
+      }
       return
     }
 
@@ -57,9 +60,15 @@ export function AirportSearch({
     // Only open the dropdown when the input is actually focused.
     // Otherwise, switching tabs with prefilled values can cause the menu to pop
     // under the cursor and look like items are "hovered"/preselected.
-    const isFocused = document.activeElement === inputRef.current
-    setOpen(isFocused && results.length > 0)
-  }, [value, airports])
+    // 모바일에서는 modalInputRef도 포커스된 요소로 인정
+    const isFocused =
+      document.activeElement === inputRef.current ||
+      document.activeElement === modalInputRef.current
+
+    // 모바일 바텀시트가 이미 열려있는 경우 유지 (value 변경 시에도 닫히지 않음)
+    const shouldKeepOpen = (open && isMobile) || isFocused
+    setOpen(shouldKeepOpen && results.length > 0)
+  }, [value, airports, isMobile, open])
 
   // 모바일 모달: 포커스 트랩, ESC 닫기, body 스크롤 잠금, 배경 inert 처리
   useEffect(() => {
@@ -336,6 +345,20 @@ export function AirportSearch({
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onFocus={() => {
+                    // 바텀시트가 열려있는 상태에서 포커스 유지
+                    if (filtered.length > 0) {
+                      setOpen(true)
+                    }
+                  }}
+                  onBlur={() => {
+                    // 모달 내 다른 요소(버튼 등)로 포커스가 이동하는 경우 닫지 않음
+                    setTimeout(() => {
+                      if (!modalRef.current?.contains(document.activeElement)) {
+                        setOpen(false)
+                      }
+                    }, 200)
+                  }}
                   placeholder={placeholder}
                   aria-label={ariaLabel || "공항 검색"}
                   className="w-full min-h-[44px] rounded-lg border border-slate-600/60 bg-slate-800/80 py-2.5 pl-10 pr-10 text-base text-slate-200 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-1 focus:ring-sky-500/30"
