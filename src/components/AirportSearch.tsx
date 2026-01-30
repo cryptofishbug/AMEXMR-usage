@@ -65,17 +65,10 @@ export function AirportSearch({
   useEffect(() => {
     if (!open || !isMobile) return
 
-    // body 스크롤 잠금
-    const originalOverflow = document.body.style.overflow
-    const originalPosition = document.body.style.position
-    const originalWidth = document.body.style.width
-    const originalTop = document.body.style.top
+    // iOS Safari 스크롤 락: position:fixed 대신 CSS 클래스 토글 (레이아웃 점프 방지)
     const scrollY = window.scrollY
-
-    document.body.style.overflow = "hidden"
-    document.body.style.position = "fixed"
-    document.body.style.width = "100%"
-    document.body.style.top = `-${scrollY}px`
+    document.documentElement.classList.add("scroll-locked")
+    // 스크롤 위치 기억 (CSS에서 position:fixed 안 쓰므로 직접 유지 불필요)
 
     // app-root에 inert 속성 추가 (배경 터치/포커스 차단)
     const appRoot = document.getElementById("app-root")
@@ -109,20 +102,31 @@ export function AirportSearch({
       }
     }
 
+    // iOS Safari: 바텀시트 밖 터치 스크롤 방지
+    const handleTouchMove = (e: TouchEvent) => {
+      // 모달 내부 스크롤 영역이면 허용
+      const target = e.target as HTMLElement
+      const scrollableArea = modalRef.current?.querySelector(".bottom-sheet-scroll")
+      if (scrollableArea?.contains(target)) {
+        return // 내부 스크롤 허용
+      }
+      e.preventDefault()
+    }
+
     document.addEventListener("keydown", handleEscape)
     document.addEventListener("keydown", handleFocusTrap)
+    document.addEventListener("touchmove", handleTouchMove, { passive: false })
     // 모달 내부 검색 input에 포커스 (키보드 유지)
     setTimeout(() => modalInputRef.current?.focus(), 50)
 
     return () => {
       document.removeEventListener("keydown", handleEscape)
       document.removeEventListener("keydown", handleFocusTrap)
+      document.removeEventListener("touchmove", handleTouchMove)
 
-      // body 스크롤 복원
-      document.body.style.overflow = originalOverflow
-      document.body.style.position = originalPosition
-      document.body.style.width = originalWidth
-      document.body.style.top = originalTop
+      // CSS 클래스 기반 스크롤 락 해제
+      document.documentElement.classList.remove("scroll-locked")
+      // 원래 스크롤 위치로 복원 (점프 없이)
       window.scrollTo(0, scrollY)
 
       // inert 속성 제거
@@ -267,7 +271,7 @@ export function AirportSearch({
       {/* 모바일 바텀시트 */}
       {isMobile && open && filtered.length > 0 && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+          className="bottom-sheet-overlay z-[100] bg-black/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="airport-search-modal-title"
@@ -280,7 +284,7 @@ export function AirportSearch({
         >
           <div
             ref={modalRef}
-            className="fixed bottom-0 left-0 right-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-slate-900 shadow-2xl"
+            className="bottom-sheet-container fixed bottom-0 left-0 right-0 flex flex-col rounded-t-2xl bg-slate-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 드래그 핸들 */}
@@ -331,7 +335,7 @@ export function AirportSearch({
               </div>
             </div>
             {/* 결과 리스트 (스크롤 가능) */}
-            <div className="flex-1 overflow-auto border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
+            <div className="bottom-sheet-scroll flex-1 border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
               {dropdownContent}
             </div>
           </div>

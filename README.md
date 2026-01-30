@@ -53,6 +53,16 @@ npm run build
 
 GrayPane은 티켓 조회 탭의 툴 목록에 포함되어 있으며, 위 검색 조건이 GrayPane 검색 URL에 반영된 상태로 새 탭에서 열립니다.
 
+## 모바일 UX (iOS Safari)
+
+공항 검색 바텀시트는 iOS Safari의 키보드/뷰포트 이슈를 고려해 최적화되어 있습니다:
+
+- **스크롤 락**: `position: fixed` 대신 CSS 클래스 토글 방식으로 레이아웃 점프 방지
+- **Dynamic Viewport**: `dvh` 단위 사용 (미지원 브라우저용 `vh` fallback)
+- **Safe Area**: 하단 노치/홈 인디케이터 영역에 대한 safe-area padding 적용
+- **내부 스크롤**: `overscroll-behavior: contain`으로 rubber-band 효과 억제
+- **배경 차단**: `inert` 속성으로 모달 뒤 콘텐츠 터치/포커스 차단
+
 ## 배포
 
 - **빌드**: `npm run build` → `dist/` 생성
