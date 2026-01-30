@@ -232,10 +232,10 @@ export function AirportSearch({
           </div>
         )}
       </div>
-      {/* 모바일 풀스크린 모달 */}
+      {/* 모바일 바텀시트 */}
       {isMobile && open && filtered.length > 0 && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="airport-search-modal-title"
@@ -248,10 +248,18 @@ export function AirportSearch({
         >
           <div
             ref={modalRef}
-            className="flex h-full flex-col bg-slate-900"
+            className="fixed bottom-0 left-0 right-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-slate-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 border-b border-slate-700/50 p-4">
+            {/* 드래그 핸들 */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-slate-600" aria-hidden="true" />
+            </div>
+            {/* 헤더: 타이틀 + 닫기 */}
+            <div className="flex items-center justify-between px-4 pb-2">
+              <h2 id="airport-search-modal-title" className="text-base font-semibold text-slate-200">
+                공항 검색
+              </h2>
               <button
                 type="button"
                 onClick={() => {
@@ -263,7 +271,10 @@ export function AirportSearch({
               >
                 <X className="h-5 w-5" />
               </button>
-              <div className="relative flex-1">
+            </div>
+            {/* 검색 input */}
+            <div className="px-4 pb-3">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   ref={modalInputRef}
@@ -287,7 +298,8 @@ export function AirportSearch({
                 )}
               </div>
             </div>
-            <div className="flex-1 overflow-auto" role="listbox" id="airport-search-listbox">
+            {/* 결과 리스트 (스크롤 가능) */}
+            <div className="flex-1 overflow-auto border-t border-slate-700/50" role="listbox" id="airport-search-listbox">
               {dropdownContent}
             </div>
           </div>
